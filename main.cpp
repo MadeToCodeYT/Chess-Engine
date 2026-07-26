@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <iostream>
+#include <cctype>
 #include "board.h"
 using namespace std;
 
@@ -7,6 +8,10 @@ const int windowWidth = 800;
 const int windowHeight = 800;
 
 Board board;
+Rectangle boardPos[8][8];
+bool initialSetup = true;
+int selectedPiece[2] = {-1, -1};
+bool skipNextPieceCheck = false;
 
 Texture2D b_bishop;
 Texture2D b_king;
@@ -28,11 +33,19 @@ void DrawBoard() {
             float yPos = rank * 100;
 
             // Alternate colors based on square position
-            Color squareColor = ((file + rank) % 2 == 0) ? Color{238, 214, 176, 255} : Color{184, 135, 99, 255};
-            Color oppositeColor = ((file + rank) % 2 == 1) ? Color{238, 214, 176, 255} : Color{184, 135, 99, 255};
-
+            Color squareColor = ((file + rank) % 2 == 0) ? Color{118, 153, 174, 255} : Color{212, 223, 229, 255};
+            Color oppositeColor = ((file + rank) % 2 == 1) ? Color{118, 153, 174, 255} : Color{212, 223, 229, 255};
+            
             // Draw Square
-            DrawRectangle(xPos, yPos, 100, 100, squareColor);
+            if (selectedPiece[0] == rank && selectedPiece[1] == file) { // Highlight selected square
+                DrawRectangle(xPos, yPos, 100, 100, Color{149, 217, 233, 255});
+            } else {
+                DrawRectangle(xPos, yPos, 100, 100, squareColor);
+            }
+            
+            if (initialSetup) {
+                boardPos[rank][file] = Rectangle{xPos, yPos, 100, 100};
+            }
 
             // Draw Rank/File Label
             if (rank == 7) { // Draw file letters at bottom left corner of each square
@@ -63,6 +76,69 @@ void DrawBoard() {
                 case 'Q': DrawTexturePro(w_queen,  srcRec, destRec, origin, 0.0f, WHITE); break;
                 case 'K': DrawTexturePro(w_king,   srcRec, destRec, origin, 0.0f, WHITE); break;
                 default: break;
+            }
+        }
+    }
+    initialSetup = false;
+}
+
+void PieceCheck() {
+    if (skipNextPieceCheck) {
+        skipNextPieceCheck = false;
+        return;
+    }
+
+    if (!IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        return;
+    }
+
+    Vector2 mousePos = GetMousePosition();
+    bool hasSelectedPiece = (selectedPiece[0] != -1 && selectedPiece[1] != -1);
+
+    for (int file = 0; file < 8; file++) {
+        for (int rank = 0; rank < 8; rank++) {
+            if (CheckCollisionPointRec(mousePos, boardPos[rank][file])) {
+                char clickedSquare = board.state[rank][file];
+
+                // Select a piece if no square has been selected yet
+                if (!hasSelectedPiece) {
+                    if (clickedSquare != ' ') {
+                        selectedPiece[0] = rank;
+                        selectedPiece[1] = file;
+                    }
+                    return;
+                }
+
+                char selectedSquare = board.state[selectedPiece[0]][selectedPiece[1]];
+
+                // Clicking the same piece will deselect it
+                if (rank == selectedPiece[0] && file == selectedPiece[1]) {
+                    selectedPiece[0] = -1;
+                    selectedPiece[1] = -1;
+                    return;
+                }
+
+                
+                if (
+                    (clickedSquare == ' ' && selectedSquare != ' ') // Moves a piece to an empty square
+                 || (clickedSquare != ' ' && isupper(clickedSquare) != isupper(selectedSquare)) // Moves a selected piece to an enemy piece (capture)
+                ) {
+                    board.state[rank][file] = selectedSquare;
+                    board.state[selectedPiece[0]][selectedPiece[1]] = ' ';
+                    skipNextPieceCheck = true;
+                }
+
+                // Switches between same team's piece
+                if (clickedSquare != ' ' && isupper(clickedSquare) == isupper(selectedSquare)) {
+                    selectedPiece[0] = rank;
+                    selectedPiece[1] = file;
+                }
+
+                if (skipNextPieceCheck) {
+                    selectedPiece[0] = -1;
+                    selectedPiece[1] = -1;
+                    return;
+                }
             }
         }
     }
@@ -107,6 +183,7 @@ int main() {
         ClearBackground(BLACK);
 
         DrawBoard();
+        PieceCheck();
 
         EndDrawing();
     }
