@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cctype>
 #include "board.h"
+#include "bot.h"
 using namespace std;
 
 const int windowWidth = 800;
@@ -18,6 +19,9 @@ Position pieceToPromote;
 
 bool gameOver = false;
 string gameOverText = "";
+
+// ADD: Lets us track whose turn it is to play (player/bot). True if waiting for bot.
+bool waitingForBot = false;
 
 void CheckGameOver() {
     if (gameOver) return;
@@ -117,6 +121,9 @@ void DrawBoard() {
 }
 
 void PieceCheck() {
+    // Only allow player input when not waiting for bot
+    if (waitingForBot) return;
+
     if (skipNextPieceCheck) {
         skipNextPieceCheck = false;
         return;
@@ -187,6 +194,11 @@ void PieceCheck() {
                     legalMoves = board.GetLegalMoves();
                     CheckGameOver();
 
+                    // If it's now black's turn (bot), set waitingForBot true
+                    if (!gameOver && !board.whiteToMove) {
+                        waitingForBot = true;
+                    }
+
                     skipNextPieceCheck = true;
                     return;
                 }
@@ -202,6 +214,9 @@ void PieceCheck() {
 }
 
 void PromotionClickCheck() {
+    // Only allow player input when not waiting for bot
+    if (waitingForBot) return;
+
     if (!showPromotionDisplay || !IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         return;
     }
@@ -231,6 +246,12 @@ void PromotionClickCheck() {
                 showPromotionDisplay = false;
                 legalMoves = board.GetLegalMoves();
                 CheckGameOver();
+
+                // If it's now black's turn (bot), set waitingForBot true
+                if (!gameOver && !board.whiteToMove) {
+                    waitingForBot = true;
+                }
+
                 return;
             }
         }
@@ -283,8 +304,23 @@ int main() {
             int textWidth = MeasureText(gameOverText.c_str(), fontSize);
             DrawText(gameOverText.c_str(), (windowWidth - textWidth) / 2, windowHeight / 2 - fontSize / 2, fontSize, WHITE);
         } else {
-            PieceCheck();
-            PromotionClickCheck();
+            if (!waitingForBot) {
+                PieceCheck();
+                PromotionClickCheck();
+            }
+
+            // If waiting for bot, and it's bot's turn, play bot move
+            if (waitingForBot && !board.whiteToMove && !gameOver) {
+                Move botMove = FindBestMove(board, 3);
+                board.MakeMove(botMove);
+
+                legalMoves = board.GetLegalMoves();
+                CheckGameOver();
+
+                if (!gameOver && board.whiteToMove) {
+                    waitingForBot = false;
+                }
+            }
         }
 
         // Draw promotion display
