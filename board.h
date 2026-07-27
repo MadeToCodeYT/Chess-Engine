@@ -22,6 +22,7 @@ struct Position {
 struct Move {
     Position start;
     Position end;
+    char promotionPiece = ' ';
 };
 
 class Board {
@@ -36,8 +37,17 @@ class Board {
             {'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'}, // Row 2
             {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}  // Row 1 (White)
         };
+        
+        int enPassantSquares[2][2]; // Allows these two squares to En Passant
+        bool w_hasLeftRookMoved = false;
+        bool w_hasRightRookMoved = false;
+        bool w_hasKingMoved = false;
+        bool b_hasLeftRookMoved = false;
+        bool b_hasRightRookMoved = false;
+        bool b_hasKingMoved = false;
 
         bool whiteToMove = true;
+
 
         vector<Move> GetPsuedoLegalMoves() {
             vector<Move> psuedoLegalMoves;
@@ -59,7 +69,15 @@ class Board {
                         if (isWhitePiece) { // White pawn moves
                             if (getPieceAtSquare(piece.rank - 1, piece.file) == ' ') {
                                 // Move up 1 if front if empty
-                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}} );
+                                if (piece.rank - 1 == 0) {
+                                    // Promotion moves
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'Q'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'R'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'B'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'N'} );
+                                } else {
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}} );
+                                }
                                 
                                 if (getPieceAtSquare(piece.rank - 2, piece.file) == ' ' && piece.rank == 6) {
                                     // Move up 2 on first move
@@ -69,16 +87,54 @@ class Board {
 
                             // Capture diagonally 1
                             if (!isupper( getPieceAtSquare(piece.rank - 1, piece.file - 1) ) && getPieceAtSquare(piece.rank - 1, piece.file - 1) != ' ') {
-                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}} );
+                                if (piece.rank - 1 == 0) {
+                                    // Promotion captures
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'Q'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'R'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'B'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'N'} );
+                                } else {
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}} );
+                                }
                             }
                             // Capture diagonally 2
                             if (!isupper( getPieceAtSquare(piece.rank - 1, piece.file + 1) ) && getPieceAtSquare(piece.rank - 1, piece.file + 1) != ' ') {
-                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}} );
+                                if (piece.rank - 1 == 0) {
+                                    // Promotion captures
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'Q'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'R'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'B'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'N'} );
+                                } else {
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}} );
+                                }
+                            }
+
+                            // En Passant
+                            if (
+                                (
+                                    enPassantSquares[0][0] == piece.rank &&
+                                    enPassantSquares[0][1] == piece.file
+                                ) ||
+                                (
+                                    enPassantSquares[1][0] == piece.rank &&
+                                    enPassantSquares[1][1] == piece.file
+                                )
+                            ) {
+                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {enPassantSquares[0][0]-1, enPassantSquares[0][1]+1}} );
                             }
                         } else { // Black pawn moves
                             if (getPieceAtSquare(piece.rank + 1, piece.file) == ' ') {
                                 // Move up 1 if front if empty
-                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}} );
+                                if (piece.rank + 1 == 7) {
+                                    // Promotion moves
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'q'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'r'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'b'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'n'} );
+                                } else {
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}} );
+                                }
                                 
                                 if (getPieceAtSquare(piece.rank + 2, piece.file) == ' ' && piece.rank == 1) {
                                     // Move up 2 on first move
@@ -88,11 +144,41 @@ class Board {
 
                             // Capture diagonally 1
                             if (isupper( getPieceAtSquare(piece.rank + 1, piece.file + 1) ) && getPieceAtSquare(piece.rank + 1, piece.file + 1) != ' ') {
-                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}} );
+                                if (piece.rank + 1 == 7) {
+                                    // Promotion captures
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'q'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'r'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'b'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'n'} );
+                                } else {
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}} );
+                                }
                             }
                             // Capture diagonally 2
                             if (isupper( getPieceAtSquare(piece.rank + 1, piece.file - 1) ) && getPieceAtSquare(piece.rank + 1, piece.file - 1) != ' ') {
-                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}} );
+                                if (piece.rank + 1 == 7) {
+                                    // Promotion captures
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'q'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'r'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'b'} );
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'n'} );
+                                } else {
+                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}} );
+                                }
+                            }
+
+                            // En Passant
+                            if (
+                                (
+                                    enPassantSquares[0][0] == piece.rank &&
+                                    enPassantSquares[0][1] == piece.file
+                                ) ||
+                                (
+                                    enPassantSquares[1][0] == piece.rank &&
+                                    enPassantSquares[1][1] == piece.file
+                                )
+                            ) {
+                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {enPassantSquares[0][0]+1, enPassantSquares[0][1]+1}} );
                             }
                         }
 
@@ -178,6 +264,37 @@ class Board {
                                 psuedoLegalMoves.push_back({{piece.rank, piece.file}, {targetRank, targetFile}});
                             }
                         }
+                        
+                        // Check if king has castling rights both left and right
+                        if (isWhitePiece) {
+                            if (!w_hasLeftRookMoved && !w_hasKingMoved 
+                                && getPieceAtSquare(7, 1) == ' '
+                                && getPieceAtSquare(7, 2) == ' '
+                                && getPieceAtSquare(7, 3) == ' '
+                            ) {
+                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {7, 2}});
+                            }
+                            if (!w_hasRightRookMoved && !w_hasKingMoved 
+                                && getPieceAtSquare(7, 5) == ' '
+                                && getPieceAtSquare(7, 6) == ' '
+                            ) {
+                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {7, 6}});
+                            }
+                        } else {
+                            if (!b_hasLeftRookMoved && !b_hasKingMoved 
+                                && getPieceAtSquare(0, 1) == ' '
+                                && getPieceAtSquare(0, 2) == ' '
+                                && getPieceAtSquare(0, 3) == ' '
+                            ) {
+                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {0, 2}});
+                            }
+                            if (!b_hasRightRookMoved && !b_hasKingMoved 
+                                && getPieceAtSquare(0, 5) == ' '
+                                && getPieceAtSquare(0, 6) == ' '
+                            ) {
+                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {0, 6}});
+                            }
+                        }
                         break;
                     }
                 }
@@ -186,13 +303,92 @@ class Board {
             return psuedoLegalMoves;
         }
 
-        void MakeMove(Move move) {
+        void MakeMove(Move move, bool switchTurns=true) {  // Assuming `move` parameter is a valid move
+            // Save pieces before changing state for en-passant checks
             char movingPiece = getPieceAtSquare(move.start.rank, move.start.file);
+            char targetBeforeMove = getPieceAtSquare(move.end.rank, move.end.file);
             
+            // Make the move
             state[move.end.rank][move.end.file] = movingPiece;
             state[move.start.rank][move.start.file] = ' ';
 
-            whiteToMove = !whiteToMove;
+            // Pseudocode: If a piece of type pawn has moved two spaces across the ranks
+            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'p' && abs(move.start.rank - move.end.rank) == 2) {
+                // Pawn moved two spaces
+                enPassantSquares[0][0] = move.end.rank;
+                enPassantSquares[0][1] = move.end.file-1;
+                enPassantSquares[1][0] = move.end.rank;
+                enPassantSquares[1][1] = move.end.file+1;
+            } else {
+                // Disable En Passaunt if another move has been made
+                enPassantSquares[0][0] = 0;
+                enPassantSquares[0][1] = 0;
+                enPassantSquares[1][0] = 0;
+                enPassantSquares[1][1] = 0;
+            }
+
+            // Check if En Passant to remove the captured pawn (target square was empty before move)
+            if (tolower(movingPiece) == 'p' && move.start.file != move.end.file && targetBeforeMove == ' ') {
+                // Captured pawn is on the same rank as the pawn moved from, and in the destination file
+                state[move.start.rank][move.end.file] = ' ';
+            }
+
+            // Check if one of the rooks has moved from their start square
+            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'r') {
+                if (move.start.rank == 0 && move.start.file == 0 && getPieceAtSquare(move.end.rank, move.end.file) == 'r') {
+                    b_hasLeftRookMoved = true;
+                }
+                if (move.start.rank == 0 && move.start.file == 7 && getPieceAtSquare(move.end.rank, move.end.file) == 'r') {
+                    b_hasRightRookMoved = true;
+                }
+                if (move.start.rank == 7 && move.start.file == 0 && getPieceAtSquare(move.end.rank, move.end.file) == 'R') {
+                    w_hasLeftRookMoved = true;
+                }
+                if (move.start.rank == 7 && move.start.file == 7 && getPieceAtSquare(move.end.rank, move.end.file) == 'R') {
+                    w_hasRightRookMoved = true;
+                }
+            }
+
+            // Check if king moved
+            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'k') {
+                if (whiteToMove) {
+                    w_hasKingMoved = true;
+                } else {
+                    b_hasKingMoved = true;
+                }
+
+                // If king moved two squares, it means they castled
+                if (abs(move.start.file - move.end.file) == 2) {
+                    if (whiteToMove) {
+                        if (move.end.file == 6) {
+                            // Castle king-side
+                            state[7][5] = 'R';
+                            state[7][7] = ' ';
+                        }
+                        if (move.end.file == 2) {
+                            // Castle queen-side
+                            state[7][3] = 'R';
+                            state[7][0] = ' ';
+                        }
+                    } else {
+                        if (move.end.file == 6) {
+                            // Castle king-side
+                            state[0][5] = 'r';
+                            state[0][7] = ' ';
+                        }
+                        if (move.end.file == 2) {
+                            // Castle queen-side
+                            state[0][3] = 'r';
+                            state[0][0] = ' ';
+                        }
+                    }
+                }
+            }
+
+            // Switch board turn
+            if (switchTurns) {
+                whiteToMove = !whiteToMove;
+            }
         }
 
     private:

@@ -13,6 +13,8 @@ bool initialSetup = true;
 int selectedPiece[2] = {-1, -1};
 bool skipNextPieceCheck = false;
 vector<Move> legalMoves = board.GetPsuedoLegalMoves();
+bool showPromotionDisplay = false;
+Position pieceToPromote;
 
 Texture2D b_bishop;
 Texture2D b_king;
@@ -103,7 +105,7 @@ void PieceCheck() {
         return;
     }
 
-    if (!IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (!IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || showPromotionDisplay) {
         return;
     }
 
@@ -150,20 +152,22 @@ void PieceCheck() {
                         return;
                     }
 
+                    if (tolower(selectedSquare) == 'p') {
+                        if (rank == 0 || rank == 7) { // Check if pawn reached first/last rank
+                            showPromotionDisplay = true;
+                            pieceToPromote = {rank, file};
+                        }
+                    }
+
                     board.MakeMove({
                         {selectedPiece[0], selectedPiece[1]},
                         {rank, file}
-                    });
+                    }, !showPromotionDisplay);
 
                     selectedPiece[0] = -1;
                     selectedPiece[1] = -1;
 
                     legalMoves = board.GetPsuedoLegalMoves();
-                    cout << "Number of possible moves: " << legalMoves.size() << " (" << (board.whiteToMove ? "white" : "black") << " to move)" << endl;
-                    // for (Move move : legalMoves) {
-                    //     cout << (char)toupper(board.state[move.start.rank][move.start.file]) << " - "<< "(" << move.start.rank << ", " << move.start.file << ") -> (" << move.end.rank << ", " << move.end.file << ")" << endl;
-                    // }
-                    cout << endl;
 
                     skipNextPieceCheck = true;
                     return;
@@ -174,6 +178,41 @@ void PieceCheck() {
                     selectedPiece[0] = rank;
                     selectedPiece[1] = file;
                 }
+            }
+        }
+    }
+}
+
+void PromotionClickCheck() {
+    if (!showPromotionDisplay || !IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        return;
+    }
+
+    const float promoX = 300.0f;
+    const float promoY = 300.0f;
+    const float promoSize = 100.0f;
+    const bool promoIsWhite = board.whiteToMove;
+    Vector2 mousePos = GetMousePosition();
+
+    for (int row = 0; row < 2; row++) {
+        for (int col = 0; col < 2; col++) {
+            Rectangle promoRect = { promoX + col * promoSize, promoY + row * promoSize, promoSize, promoSize };
+            if (CheckCollisionPointRec(mousePos, promoRect)) {
+                char promotionPiece;
+                int index = row * 2 + col;
+                switch (index) {
+                    case 0: promotionPiece = promoIsWhite ? 'Q' : 'q'; break;
+                    case 1: promotionPiece = promoIsWhite ? 'R' : 'r'; break;
+                    case 2: promotionPiece = promoIsWhite ? 'B' : 'b'; break;
+                    case 3: promotionPiece = promoIsWhite ? 'N' : 'n'; break;
+                    default: promotionPiece = promoIsWhite ? 'Q' : 'q'; break;
+                }
+
+                board.state[pieceToPromote.rank][pieceToPromote.file] = promotionPiece;
+                board.whiteToMove = !board.whiteToMove;
+                showPromotionDisplay = false;
+                legalMoves = board.GetPsuedoLegalMoves();
+                return;
             }
         }
     }
@@ -219,6 +258,37 @@ int main() {
 
         DrawBoard();
         PieceCheck();
+
+        // Promotion Display click handling
+        PromotionClickCheck();
+        // Draw promotion display
+        if (showPromotionDisplay) {
+            const bool promoIsWhite = board.whiteToMove;
+            Texture2D promoPieces[4] = {
+                promoIsWhite ? w_queen  : b_queen,
+                promoIsWhite ? w_rook   : b_rook,
+                promoIsWhite ? w_bishop : b_bishop,
+                promoIsWhite ? w_knight : b_knight,
+            };
+
+            const float promoX = 300.0f;
+            const float promoY = 300.0f;
+            const float promoSize = 100.0f;
+            const Rectangle srcRec = { 0.0f, 0.0f, 100.0f, 100.0f };
+            const Vector2 origin = { 0.0f, 0.0f };
+
+            DrawRectangle((int)promoX - 10, (int)promoY - 10, (int)(promoSize * 2 + 20), (int)(promoSize * 2 + 20), Fade(GRAY, 0.8f));
+
+            for (int row = 0; row < 2; row++) {
+                for (int col = 0; col < 2; col++) {
+                    int index = row * 2 + col;
+                    float x = promoX + col * promoSize;
+                    float y = promoY + row * promoSize;
+                    DrawRectangleLines((int)x, (int)y, (int)promoSize, (int)promoSize, BLACK);
+                    DrawTexturePro(promoPieces[index], srcRec, Rectangle{x, y, promoSize, promoSize}, origin, 0.0f, WHITE);
+                }
+            }
+        }
 
         EndDrawing();
     }
