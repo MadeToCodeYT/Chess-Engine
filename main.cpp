@@ -16,6 +16,23 @@ vector<Move> legalMoves = board.GetLegalMoves();
 bool showPromotionDisplay = false;
 Position pieceToPromote;
 
+bool gameOver = false;
+string gameOverText = "";
+
+void CheckGameOver() {
+    if (gameOver) return;
+    if (!legalMoves.empty()) return;
+
+    bool inCheck = board.IsInCheck(board.whiteToMove);
+    if (inCheck) {
+        string winner = board.whiteToMove ? "Black" : "White"; // side to move has no moves and is in check -> other side wins
+        gameOverText = winner + " wins!";
+    } else {
+        gameOverText = "Draw by stalemate.";
+    }
+    gameOver = true;
+}
+
 Texture2D b_bishop;
 Texture2D b_king;
 Texture2D b_knight;
@@ -168,6 +185,7 @@ void PieceCheck() {
                     selectedPiece[1] = -1;
 
                     legalMoves = board.GetLegalMoves();
+                    CheckGameOver();
 
                     skipNextPieceCheck = true;
                     return;
@@ -212,6 +230,7 @@ void PromotionClickCheck() {
                 board.whiteToMove = !board.whiteToMove;
                 showPromotionDisplay = false;
                 legalMoves = board.GetLegalMoves();
+                CheckGameOver();
                 return;
             }
         }
@@ -255,12 +274,19 @@ int main() {
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
-
+        
         DrawBoard();
-        PieceCheck();
 
-        // Promotion Display click handling
-        PromotionClickCheck();
+        if (gameOver) {
+            DrawRectangle(0, 0, windowWidth, windowHeight, Fade(BLACK, 0.7f));
+            int fontSize = 48;
+            int textWidth = MeasureText(gameOverText.c_str(), fontSize);
+            DrawText(gameOverText.c_str(), (windowWidth - textWidth) / 2, windowHeight / 2 - fontSize / 2, fontSize, WHITE);
+        } else {
+            PieceCheck();
+            PromotionClickCheck();
+        }
+
         // Draw promotion display
         if (showPromotionDisplay) {
             const bool promoIsWhite = board.whiteToMove;

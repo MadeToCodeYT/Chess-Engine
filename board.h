@@ -51,7 +51,7 @@ class Board {
 
         vector<Move> GetLegalMoves() {
             vector<Move> legalMoves;
-            vector<Move> pseudoLegalMoves = GetPsuedoLegalMoves();
+            vector<Move> pseudoLegalMoves = GetPseudoLegalMoves();
 
             // To determine legality, we need to check moves from the perspective BEFORE the move (whiteToMove).
             // After making the move, it is opponent's turn, so must look for the side that just moved's king.
@@ -81,7 +81,7 @@ class Board {
                 tempBoard.whiteToMove = !whiteToMove;
 
                 bool kingAttacked = false;
-                vector<Move> opponentMoves = tempBoard.GetPsuedoLegalMoves();
+                vector<Move> opponentMoves = tempBoard.GetPseudoLegalMoves();
                 for (const Move& reply : opponentMoves) {
                     if (reply.end.rank == kingPos.rank && reply.end.file == kingPos.file) {
                         kingAttacked = true;
@@ -185,9 +185,34 @@ class Board {
             }
         }
 
+        bool IsInCheck(bool whiteSide) {
+            char kingChar = whiteSide ? 'K' : 'k';
+            Position kingPos = {-1, -1};
+            for (int rank = 0; rank < 8; rank++) {
+                for (int file = 0; file < 8; file++) {
+                    if (state[rank][file] == kingChar) {
+                        kingPos = {rank, file};
+                    }
+                }
+            }
+            if (kingPos.rank == -1) return false;
+
+            bool savedWhiteToMove = whiteToMove;
+            whiteToMove = !whiteSide;
+            vector<Move> opponentMoves = GetPseudoLegalMoves();
+            whiteToMove = savedWhiteToMove;
+
+            for (Move &reply : opponentMoves) {
+                if (reply.end.rank == kingPos.rank && reply.end.file == kingPos.file) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
     private:
-        vector<Move> GetPsuedoLegalMoves() {
-            vector<Move> psuedoLegalMoves;
+        vector<Move> GetPseudoLegalMoves() {
+            vector<Move> pseudoLegalMoves;
 
             vector<Position> turnPieces; // All pieces of whoever's turn it is to move
             for (int file = 0; file < 8; file++) {
@@ -208,17 +233,17 @@ class Board {
                                 // Move up 1 if front if empty
                                 if (piece.rank - 1 == 0) {
                                     // Promotion moves
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'Q'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'R'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'B'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'N'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'Q'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'R'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'B'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}, 'N'} );
                                 } else {
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file}} );
                                 }
                                 
                                 if (getPieceAtSquare(piece.rank - 2, piece.file) == ' ' && piece.rank == 6) {
                                     // Move up 2 on first move
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 2, piece.file}} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 2, piece.file}} );
                                 }
                             }
 
@@ -226,24 +251,24 @@ class Board {
                             if (!isupper( getPieceAtSquare(piece.rank - 1, piece.file - 1) ) && getPieceAtSquare(piece.rank - 1, piece.file - 1) != ' ') {
                                 if (piece.rank - 1 == 0) {
                                     // Promotion captures
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'Q'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'R'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'B'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'N'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'Q'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'R'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'B'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}, 'N'} );
                                 } else {
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file - 1}} );
                                 }
                             }
                             // Capture diagonally 2
                             if (!isupper( getPieceAtSquare(piece.rank - 1, piece.file + 1) ) && getPieceAtSquare(piece.rank - 1, piece.file + 1) != ' ') {
                                 if (piece.rank - 1 == 0) {
                                     // Promotion captures
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'Q'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'R'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'B'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'N'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'Q'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'R'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'B'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}, 'N'} );
                                 } else {
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank - 1, piece.file + 1}} );
                                 }
                             }
 
@@ -258,24 +283,24 @@ class Board {
                                     enPassantSquares[1][1] == piece.file
                                 )
                             ) {
-                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {enPassantSquares[0][0]-1, enPassantSquares[0][1]+1}} );
+                                pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {enPassantSquares[0][0]-1, enPassantSquares[0][1]+1}} );
                             }
                         } else { // Black pawn moves
                             if (getPieceAtSquare(piece.rank + 1, piece.file) == ' ') {
                                 // Move up 1 if front if empty
                                 if (piece.rank + 1 == 7) {
                                     // Promotion moves
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'q'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'r'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'b'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'n'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'q'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'r'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'b'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}, 'n'} );
                                 } else {
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file}} );
                                 }
                                 
                                 if (getPieceAtSquare(piece.rank + 2, piece.file) == ' ' && piece.rank == 1) {
                                     // Move up 2 on first move
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 2, piece.file}} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 2, piece.file}} );
                                 }
                             }
 
@@ -283,24 +308,24 @@ class Board {
                             if (isupper( getPieceAtSquare(piece.rank + 1, piece.file + 1) ) && getPieceAtSquare(piece.rank + 1, piece.file + 1) != ' ') {
                                 if (piece.rank + 1 == 7) {
                                     // Promotion captures
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'q'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'r'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'b'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'n'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'q'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'r'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'b'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}, 'n'} );
                                 } else {
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file + 1}} );
                                 }
                             }
                             // Capture diagonally 2
                             if (isupper( getPieceAtSquare(piece.rank + 1, piece.file - 1) ) && getPieceAtSquare(piece.rank + 1, piece.file - 1) != ' ') {
                                 if (piece.rank + 1 == 7) {
                                     // Promotion captures
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'q'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'r'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'b'} );
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'n'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'q'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'r'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'b'} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}, 'n'} );
                                 } else {
-                                    psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}} );
+                                    pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {piece.rank + 1, piece.file - 1}} );
                                 }
                             }
 
@@ -315,7 +340,7 @@ class Board {
                                     enPassantSquares[1][1] == piece.file
                                 )
                             ) {
-                                psuedoLegalMoves.push_back( {{piece.rank, piece.file}, {enPassantSquares[0][0]+1, enPassantSquares[0][1]+1}} );
+                                pseudoLegalMoves.push_back( {{piece.rank, piece.file}, {enPassantSquares[0][0]+1, enPassantSquares[0][1]+1}} );
                             }
                         }
 
@@ -336,7 +361,7 @@ class Board {
                             
                             // Move to empty or enemy piece
                             if (target == ' ' || (isupper(target) != isWhitePiece)) {
-                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {targetRank, targetFile}});
+                                pseudoLegalMoves.push_back({{piece.rank, piece.file}, {targetRank, targetFile}});
                             }
                         }
                         break;
@@ -350,7 +375,7 @@ class Board {
                         };
                         vector<Move> moves = longRangePiece(piece, movements, 4, isWhitePiece);
                         
-                        psuedoLegalMoves.insert(psuedoLegalMoves.end(), moves.begin(), moves.end());
+                        pseudoLegalMoves.insert(pseudoLegalMoves.end(), moves.begin(), moves.end());
                         break;
                     }
                     case 'r': {
@@ -362,7 +387,7 @@ class Board {
                         };
                         vector<Move> moves = longRangePiece(piece, movements, 4, isWhitePiece);
                         
-                        psuedoLegalMoves.insert(psuedoLegalMoves.end(), moves.begin(), moves.end());
+                        pseudoLegalMoves.insert(pseudoLegalMoves.end(), moves.begin(), moves.end());
                         break;
                     }
                     case 'q': {
@@ -378,7 +403,7 @@ class Board {
                         };
                         vector<Move> moves = longRangePiece(piece, movements, 8, isWhitePiece);
                         
-                        psuedoLegalMoves.insert(psuedoLegalMoves.end(), moves.begin(), moves.end());
+                        pseudoLegalMoves.insert(pseudoLegalMoves.end(), moves.begin(), moves.end());
                         break;
                     }
                     case 'k': {
@@ -398,7 +423,7 @@ class Board {
                             
                             // Move to empty or enemy piece
                             if (target == ' ' || (isupper(target) != isWhitePiece)) {
-                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {targetRank, targetFile}});
+                                pseudoLegalMoves.push_back({{piece.rank, piece.file}, {targetRank, targetFile}});
                             }
                         }
                         
@@ -409,13 +434,13 @@ class Board {
                                 && getPieceAtSquare(7, 2) == ' '
                                 && getPieceAtSquare(7, 3) == ' '
                             ) {
-                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {7, 2}});
+                                pseudoLegalMoves.push_back({{piece.rank, piece.file}, {7, 2}});
                             }
                             if (!w_hasRightRookMoved && !w_hasKingMoved 
                                 && getPieceAtSquare(7, 5) == ' '
                                 && getPieceAtSquare(7, 6) == ' '
                             ) {
-                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {7, 6}});
+                                pseudoLegalMoves.push_back({{piece.rank, piece.file}, {7, 6}});
                             }
                         } else {
                             if (!b_hasLeftRookMoved && !b_hasKingMoved 
@@ -423,13 +448,13 @@ class Board {
                                 && getPieceAtSquare(0, 2) == ' '
                                 && getPieceAtSquare(0, 3) == ' '
                             ) {
-                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {0, 2}});
+                                pseudoLegalMoves.push_back({{piece.rank, piece.file}, {0, 2}});
                             }
                             if (!b_hasRightRookMoved && !b_hasKingMoved 
                                 && getPieceAtSquare(0, 5) == ' '
                                 && getPieceAtSquare(0, 6) == ' '
                             ) {
-                                psuedoLegalMoves.push_back({{piece.rank, piece.file}, {0, 6}});
+                                pseudoLegalMoves.push_back({{piece.rank, piece.file}, {0, 6}});
                             }
                         }
                         break;
@@ -437,7 +462,7 @@ class Board {
                 }
             }
             
-            return psuedoLegalMoves;
+            return pseudoLegalMoves;
         }
 
         vector<Move> longRangePiece(Position pos, int dx, int dy, bool isWhitePiece) {
