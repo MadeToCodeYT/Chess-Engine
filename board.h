@@ -58,6 +58,14 @@ class Board {
 
             for (const Move &move : pseudoLegalMoves) {
                 Board tempBoard = *this;
+
+                // Disable castling if the king is in check and moves out of a castle
+                if (IsInCheck(whiteToMove)
+                && tolower(state[move.start.rank][move.start.file]) == 'k'
+                && abs(move.start.file - move.end.file) >= 2) {
+                    continue;
+                }
+
                 // NOTE: MakeMove should NOT switch turns here, otherwise the board's turn is wrong for checking king safety.
                 tempBoard.MakeMove(move, false);
 
@@ -103,7 +111,12 @@ class Board {
             char targetBeforeMove = getPieceAtSquare(move.end.rank, move.end.file);
             
             // Make the move
-            state[move.end.rank][move.end.file] = movingPiece;
+            if (move.promotionPiece != ' ') {
+                // Handle bot promotions
+                state[move.end.rank][move.end.file] = move.promotionPiece;
+            } else {
+                state[move.end.rank][move.end.file] = movingPiece;
+            }
             state[move.start.rank][move.start.file] = ' ';
 
             // Pseudocode: If a piece of type pawn has moved two spaces across the ranks
@@ -140,6 +153,25 @@ class Board {
                 }
                 if (move.start.rank == 7 && move.start.file == 7 && getPieceAtSquare(move.end.rank, move.end.file) == 'R') {
                     w_hasRightRookMoved = true;
+                }
+            }
+
+            // Check if a rook has been captured in their starting square (disables castling on that side)
+            if (targetBeforeMove == 'r') {
+                if (move.end.rank == 0) {
+                    if (move.end.file == 0) {
+                        b_hasRightRookMoved = true;
+                    }
+                    if (move.end.file == 7) {
+                        b_hasLeftRookMoved = true;
+                    }
+                } else if (move.end.rank == 7) {
+                    if (move.end.file == 0) {
+                        w_hasRightRookMoved = true;
+                    }
+                    if (move.end.file == 7) {
+                        w_hasLeftRookMoved = true;
+                    }
                 }
             }
 

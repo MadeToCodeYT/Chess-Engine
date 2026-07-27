@@ -311,6 +311,7 @@ int main() {
             // If waiting for bot, and it's bot's turn, play bot move
             if (waitingForBot && !board.whiteToMove && !gameOver) {
                 Move botMove = FindBestMove(board, 3);
+                cout << botMove.promotionPiece << endl;
                 board.MakeMove(botMove);
 
                 legalMoves = board.GetLegalMoves();
