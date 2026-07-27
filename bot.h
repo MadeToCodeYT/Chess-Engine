@@ -3,58 +3,135 @@
 #include <algorithm>
 using namespace std;
 
+const int pawnValue = 100;
+const int knightValue = 300;
+const int bishopValue = 320;
+const int rookValue = 500;
+const int queenValue = 900;                                    
+
+double pawnLocationEval[8][8] = {
+    {0, 0, 0, 0, 0, 0, 0, 0},
+    {50, 50, 50, 50, 50, 50, 50, 50},
+    {10, 15, 20, 30, 30, 20, 15, 10},
+    {5, 5, 10, 25, 25, 10, 5, 5},
+    {0, 0, 0, 20, 20, 0, 0, 0},
+    {5, -5, -10, 0, 0, -10, -5, 5},
+    {5, 10, 10, -20, -20, 10, 10, 5},
+    {0, 0, 0, 0, 0, 0, 0, 0},
+};
+
+double knightLocationEval[8][8] = {
+    {-30, -28, -20, -18, -18, -20, -28, -30},
+    {-28, -16,  -5,  -2,  -2,  -5, -16, -28},
+    {-20,  -5,  10,  14,  14,  10,  -5, -20},
+    {-18,   0,  14,  22,  22,  14,   0, -18},
+    {-18,   2,  14,  22,  22,  14,   2, -18},
+    {-20,   5,  10,  14,  14,  10,   5, -20},
+    {-28, -15,  -2,   3,   3,  -2, -15, -28},
+    {-30, -28, -20, -18, -18, -20, -28, -30}
+};
+
+double bishopLocationEval[8][8] = {
+    {-14, -5, -5, -8, -8, -5, -5, -14},
+    {-5,   4,  0,  0,  0,  0,  4,  -5},
+    {-8,   0, 10, 14, 14, 10,  0,  -8},
+    {-8,   8, 14, 18, 18, 14,  8,  -8},
+    {-8,   0, 14, 18, 18, 14,  0,  -8},
+    {-8, 10, 14, 14, 14, 14, 10,  -8},
+    {-5,   8,  0,  0,  0,  0,  8,  -5},
+    {-14, -5, -8, -8, -8, -8, -5, -14}
+};
+
+double rookLocationEval[8][8] = {
+	{0,  0,  0,  0,  0,  0,  0,  0},
+	{5, 10, 10, 10, 10, 10, 10,  5},
+	{-5,  0,  0,  0,  0,  0,  0, -5},
+	{-5,  0,  0,  0,  0,  0,  0, -5},
+	{-5,  0,  0,  0,  0,  0,  0, -5},
+	{-5,  0,  0,  0,  0,  0,  0, -5},
+	{-5,  0,  0,  0,  0,  0,  0, -5},
+	{0,  0,  0,  5,  5,  0,  0,  0}
+};
+
+double queenLocationEval[8][8] = {
+    {-18, -2, -2, -1, -1, -2, -2, -18},
+    { -5,  0,  0,  1,  1,  0,  0,  -5},
+    { -8,  0,  6,  7,  7,  6,  0,  -8},
+    { -1,  1,  8, 10, 10,  8,  1,  -1},
+    {  0,  2,  8, 10, 10,  8,  2,   0},
+    { -8,  6,  7,  7,  7,  7,  6,  -8},
+    { -5,  0,  4,  0,  0,  4,  0,  -5},
+    {-18, -2, -2, -1, -1, -2, -2, -18}
+};
+
+double kingLocationEval[8][8] = {
+    {-70, -65, -60, -50, -50, -60, -65, -70},
+    {-45, -40, -35, -28, -28, -35, -40, -45},
+    {-30, -20, -15, -10, -10, -15, -20, -30},
+    {-10,   0,   5,  10,  10,   5,   0, -10},
+    {  7,  15,  15,  20,  20,  15,  15,   7},
+    { 15,  25,  30,  30,  30,  30,  25,  15},
+    { 25,  30,  35,  35,  35,  35,  30,  25},
+    { 30,  40,  60,  80,  80,  60,  40,  30}
+};
+
 double EvaluateBoardState(Board board) {
     double whiteMaterial = 0;
     double blackMaterial = 0;
-
-    int legalMovesCount = board.GetLegalMoves().size();
-    if (legalMovesCount == 0) {
-        if (board.IsInCheck(board.whiteToMove)) {
-            return board.whiteToMove ? -10000 : 10000;
-        }
-        return 0;
-    }
+    double locationEval = 0;
 
     for (int file = 0; file < 8; file++) {
         for (int rank = 0; rank < 8; rank++) {
             switch (board.state[rank][file]) {
                 case 'P':
-                    whiteMaterial += 1;
+                    whiteMaterial += pawnValue;
+                    locationEval += pawnLocationEval[rank][file];
                     break;
                 case 'N':
-                    whiteMaterial += 3;
+                    whiteMaterial += knightValue;
+                    locationEval += knightLocationEval[rank][file];
                     break;
                 case 'B':
-                    whiteMaterial += 3.5;
+                    whiteMaterial += bishopValue;
+                    locationEval += bishopLocationEval[rank][file];
                     break;
                 case 'R':
-                    whiteMaterial += 5;
+                    whiteMaterial += rookValue;
+                    locationEval += rookLocationEval[rank][file];
                     break;
                 case 'Q':
-                    whiteMaterial += 9;
+                    whiteMaterial += queenValue;
+                    locationEval += queenLocationEval[rank][file];
                     break;
+
                 case 'p':
-                    blackMaterial += 1;
+                    blackMaterial += pawnValue;
+                    locationEval += pawnLocationEval[7 - rank][file];
                     break;
                 case 'n':
-                    blackMaterial += 3;
+                    blackMaterial += knightValue;
+                    locationEval += knightLocationEval[7 - rank][file];
                     break;
                 case 'b':
-                    blackMaterial += 3.5;
+                    blackMaterial += bishopValue;
+                    locationEval += bishopLocationEval[7 - rank][file];
                     break;
                 case 'r':
-                    blackMaterial += 5;
+                    blackMaterial += rookValue;
+                    locationEval += rookLocationEval[7 - rank][file];
                     break;
                 case 'q':
-                    blackMaterial += 9;
+                    blackMaterial += queenValue;
+                    locationEval += queenLocationEval[7 - rank][file];
                     break;
+               
             }
         }
     }
 
     double materialTotal = whiteMaterial - blackMaterial;
 
-    return materialTotal;
+    return materialTotal + locationEval;
 }
 
 double Search(Board& board, int depth, double alpha, double beta, bool isMaximizing) {
@@ -63,11 +140,14 @@ double Search(Board& board, int depth, double alpha, double beta, bool isMaximiz
     }
     vector<Move> legalMoves = board.GetLegalMoves();
     if (legalMoves.size() == 0) {
-        return EvaluateBoardState(board);
+        if (board.IsInCheck(board.whiteToMove)) {
+            return board.whiteToMove ? -1e10 : 1e10; // Checkmate
+        }
+        return 0; // Stalemate
     }
 
     if (isMaximizing) {
-        double maxEval = -1e9;
+        double maxEval = -1e10;
         for (const Move& move : legalMoves) {
             Board tempBoard = board;
             tempBoard.MakeMove(move);
@@ -81,7 +161,7 @@ double Search(Board& board, int depth, double alpha, double beta, bool isMaximiz
 
         return maxEval;
     } else {
-        double minEval = 1e9;
+        double minEval = 1e10;
         for (const Move& move : legalMoves) {
             Board tempBoard = board;
             tempBoard.MakeMove(move);
@@ -104,9 +184,9 @@ Move FindBestMove(Board& board, int depth) {
     }
     Move bestMove = moves[0]; // Fallback initialization
 
-    double bestValue = board.whiteToMove ? -1e9 : 1e9;
-    double alpha = -1e9;
-    double beta = 1e9;
+    double bestValue = board.whiteToMove ? -1e10 : 1e10;
+    double alpha = -1e10;
+    double beta = 1e10;
 
     for (const auto& move : moves) {
         Board tempBoard = board;

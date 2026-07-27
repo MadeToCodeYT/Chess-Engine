@@ -20,7 +20,6 @@ Position pieceToPromote;
 bool gameOver = false;
 string gameOverText = "";
 
-// ADD: Lets us track whose turn it is to play (player/bot). True if waiting for bot.
 bool waitingForBot = false;
 
 void CheckGameOver() {
@@ -29,7 +28,7 @@ void CheckGameOver() {
 
     bool inCheck = board.IsInCheck(board.whiteToMove);
     if (inCheck) {
-        string winner = board.whiteToMove ? "Black" : "White"; // side to move has no moves and is in check -> other side wins
+        string winner = board.whiteToMove ? "Black" : "White";
         gameOverText = winner + " wins!";
     } else {
         gameOverText = "Draw by stalemate.";
