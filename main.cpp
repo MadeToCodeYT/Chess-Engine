@@ -12,7 +12,7 @@ Rectangle boardPos[8][8];
 bool initialSetup = true;
 int selectedPiece[2] = {-1, -1};
 bool skipNextPieceCheck = false;
-vector<Move> legalMoves = board.GetPsuedoLegalMoves();
+vector<Move> legalMoves = board.GetLegalMoves();
 bool showPromotionDisplay = false;
 Position pieceToPromote;
 
@@ -167,7 +167,7 @@ void PieceCheck() {
                     selectedPiece[0] = -1;
                     selectedPiece[1] = -1;
 
-                    legalMoves = board.GetPsuedoLegalMoves();
+                    legalMoves = board.GetLegalMoves();
 
                     skipNextPieceCheck = true;
                     return;
@@ -211,7 +211,7 @@ void PromotionClickCheck() {
                 board.state[pieceToPromote.rank][pieceToPromote.file] = promotionPiece;
                 board.whiteToMove = !board.whiteToMove;
                 showPromotionDisplay = false;
-                legalMoves = board.GetPsuedoLegalMoves();
+                legalMoves = board.GetLegalMoves();
                 return;
             }
         }

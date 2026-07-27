@@ -49,6 +49,143 @@ class Board {
         bool whiteToMove = true;
 
 
+        vector<Move> GetLegalMoves() {
+            vector<Move> legalMoves;
+            vector<Move> pseudoLegalMoves = GetPsuedoLegalMoves();
+
+            // To determine legality, we need to check moves from the perspective BEFORE the move (whiteToMove).
+            // After making the move, it is opponent's turn, so must look for the side that just moved's king.
+
+            for (const Move &move : pseudoLegalMoves) {
+                Board tempBoard = *this;
+                // NOTE: MakeMove should NOT switch turns here, otherwise the board's turn is wrong for checking king safety.
+                tempBoard.MakeMove(move, false);
+
+                // Find the king of the side who is moving (same as 'this->whiteToMove').
+                char kingChar = whiteToMove ? 'K' : 'k';
+                Position kingPos = {-1, -1};
+                for (int rank = 0; rank < 8; rank++) {
+                    for (int file = 0; file < 8; file++) {
+                        if (tempBoard.state[rank][file] == kingChar) {
+                            kingPos = {rank, file};
+                        }
+                    }
+                }
+
+                if (kingPos.rank == -1) {
+                    // King missing? Illegal position.
+                    continue;
+                }
+
+                // Switch turn for opponent's moves
+                tempBoard.whiteToMove = !whiteToMove;
+
+                bool kingAttacked = false;
+                vector<Move> opponentMoves = tempBoard.GetPsuedoLegalMoves();
+                for (const Move& reply : opponentMoves) {
+                    if (reply.end.rank == kingPos.rank && reply.end.file == kingPos.file) {
+                        kingAttacked = true;
+                        break;
+                    }
+                }
+
+                if (!kingAttacked) {
+                    legalMoves.push_back(move);
+                }
+            }
+
+            return legalMoves;
+        }
+
+        void MakeMove(Move move, bool switchTurns=true) {  // Assuming `move` parameter is a valid move
+            // Save pieces before changing state for en-passant checks
+            char movingPiece = getPieceAtSquare(move.start.rank, move.start.file);
+            char targetBeforeMove = getPieceAtSquare(move.end.rank, move.end.file);
+            
+            // Make the move
+            state[move.end.rank][move.end.file] = movingPiece;
+            state[move.start.rank][move.start.file] = ' ';
+
+            // Pseudocode: If a piece of type pawn has moved two spaces across the ranks
+            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'p' && abs(move.start.rank - move.end.rank) == 2) {
+                // Pawn moved two spaces
+                enPassantSquares[0][0] = move.end.rank;
+                enPassantSquares[0][1] = move.end.file-1;
+                enPassantSquares[1][0] = move.end.rank;
+                enPassantSquares[1][1] = move.end.file+1;
+            } else {
+                // Disable En Passaunt if another move has been made
+                enPassantSquares[0][0] = 0;
+                enPassantSquares[0][1] = 0;
+                enPassantSquares[1][0] = 0;
+                enPassantSquares[1][1] = 0;
+            }
+
+            // Check if En Passant to remove the captured pawn (target square was empty before move)
+            if (tolower(movingPiece) == 'p' && move.start.file != move.end.file && targetBeforeMove == ' ') {
+                // Captured pawn is on the same rank as the pawn moved from, and in the destination file
+                state[move.start.rank][move.end.file] = ' ';
+            }
+
+            // Check if one of the rooks has moved from their start square
+            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'r') {
+                if (move.start.rank == 0 && move.start.file == 0 && getPieceAtSquare(move.end.rank, move.end.file) == 'r') {
+                    b_hasLeftRookMoved = true;
+                }
+                if (move.start.rank == 0 && move.start.file == 7 && getPieceAtSquare(move.end.rank, move.end.file) == 'r') {
+                    b_hasRightRookMoved = true;
+                }
+                if (move.start.rank == 7 && move.start.file == 0 && getPieceAtSquare(move.end.rank, move.end.file) == 'R') {
+                    w_hasLeftRookMoved = true;
+                }
+                if (move.start.rank == 7 && move.start.file == 7 && getPieceAtSquare(move.end.rank, move.end.file) == 'R') {
+                    w_hasRightRookMoved = true;
+                }
+            }
+
+            // Check if king moved
+            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'k') {
+                if (whiteToMove) {
+                    w_hasKingMoved = true;
+                } else {
+                    b_hasKingMoved = true;
+                }
+
+                // If king moved two squares, it means they castled
+                if (abs(move.start.file - move.end.file) == 2) {
+                    if (whiteToMove) {
+                        if (move.end.file == 6) {
+                            // Castle king-side
+                            state[7][5] = 'R';
+                            state[7][7] = ' ';
+                        }
+                        if (move.end.file == 2) {
+                            // Castle queen-side
+                            state[7][3] = 'R';
+                            state[7][0] = ' ';
+                        }
+                    } else {
+                        if (move.end.file == 6) {
+                            // Castle king-side
+                            state[0][5] = 'r';
+                            state[0][7] = ' ';
+                        }
+                        if (move.end.file == 2) {
+                            // Castle queen-side
+                            state[0][3] = 'r';
+                            state[0][0] = ' ';
+                        }
+                    }
+                }
+            }
+
+            // Switch board turn
+            if (switchTurns) {
+                whiteToMove = !whiteToMove;
+            }
+        }
+
+    private:
         vector<Move> GetPsuedoLegalMoves() {
             vector<Move> psuedoLegalMoves;
 
@@ -303,95 +440,6 @@ class Board {
             return psuedoLegalMoves;
         }
 
-        void MakeMove(Move move, bool switchTurns=true) {  // Assuming `move` parameter is a valid move
-            // Save pieces before changing state for en-passant checks
-            char movingPiece = getPieceAtSquare(move.start.rank, move.start.file);
-            char targetBeforeMove = getPieceAtSquare(move.end.rank, move.end.file);
-            
-            // Make the move
-            state[move.end.rank][move.end.file] = movingPiece;
-            state[move.start.rank][move.start.file] = ' ';
-
-            // Pseudocode: If a piece of type pawn has moved two spaces across the ranks
-            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'p' && abs(move.start.rank - move.end.rank) == 2) {
-                // Pawn moved two spaces
-                enPassantSquares[0][0] = move.end.rank;
-                enPassantSquares[0][1] = move.end.file-1;
-                enPassantSquares[1][0] = move.end.rank;
-                enPassantSquares[1][1] = move.end.file+1;
-            } else {
-                // Disable En Passaunt if another move has been made
-                enPassantSquares[0][0] = 0;
-                enPassantSquares[0][1] = 0;
-                enPassantSquares[1][0] = 0;
-                enPassantSquares[1][1] = 0;
-            }
-
-            // Check if En Passant to remove the captured pawn (target square was empty before move)
-            if (tolower(movingPiece) == 'p' && move.start.file != move.end.file && targetBeforeMove == ' ') {
-                // Captured pawn is on the same rank as the pawn moved from, and in the destination file
-                state[move.start.rank][move.end.file] = ' ';
-            }
-
-            // Check if one of the rooks has moved from their start square
-            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'r') {
-                if (move.start.rank == 0 && move.start.file == 0 && getPieceAtSquare(move.end.rank, move.end.file) == 'r') {
-                    b_hasLeftRookMoved = true;
-                }
-                if (move.start.rank == 0 && move.start.file == 7 && getPieceAtSquare(move.end.rank, move.end.file) == 'r') {
-                    b_hasRightRookMoved = true;
-                }
-                if (move.start.rank == 7 && move.start.file == 0 && getPieceAtSquare(move.end.rank, move.end.file) == 'R') {
-                    w_hasLeftRookMoved = true;
-                }
-                if (move.start.rank == 7 && move.start.file == 7 && getPieceAtSquare(move.end.rank, move.end.file) == 'R') {
-                    w_hasRightRookMoved = true;
-                }
-            }
-
-            // Check if king moved
-            if (tolower(getPieceAtSquare(move.end.rank, move.end.file)) == 'k') {
-                if (whiteToMove) {
-                    w_hasKingMoved = true;
-                } else {
-                    b_hasKingMoved = true;
-                }
-
-                // If king moved two squares, it means they castled
-                if (abs(move.start.file - move.end.file) == 2) {
-                    if (whiteToMove) {
-                        if (move.end.file == 6) {
-                            // Castle king-side
-                            state[7][5] = 'R';
-                            state[7][7] = ' ';
-                        }
-                        if (move.end.file == 2) {
-                            // Castle queen-side
-                            state[7][3] = 'R';
-                            state[7][0] = ' ';
-                        }
-                    } else {
-                        if (move.end.file == 6) {
-                            // Castle king-side
-                            state[0][5] = 'r';
-                            state[0][7] = ' ';
-                        }
-                        if (move.end.file == 2) {
-                            // Castle queen-side
-                            state[0][3] = 'r';
-                            state[0][0] = ' ';
-                        }
-                    }
-                }
-            }
-
-            // Switch board turn
-            if (switchTurns) {
-                whiteToMove = !whiteToMove;
-            }
-        }
-
-    private:
         vector<Move> longRangePiece(Position pos, int dx, int dy, bool isWhitePiece) {
             vector<Move> legalPieceMoves;
             Position startPos = pos; // original starting position of the piece
