@@ -77,8 +77,8 @@ double kingLocationEval[8][8] = {
     {-10,   0,   5,  10,  10,   5,   0, -10},
     {  7,  15,  15,  20,  20,  15,  15,   7},
     { 15,  25,  30,  30,  30,  30,  25,  15},
-    { 25,  30,  35,  35,  35,  35,  30,  25},
-    { 30,  60,  40,  80,  80,  60,  40,  30}
+    { 25,  30,  20,  20,  20,  20,  30,  25},
+    { 30,  40,  60,  80,  80,  40,  60,  30}
 };
 
 double kingLocationEval_EndGame[8][8] = {
@@ -245,6 +245,7 @@ double EvaluateBoardState(Board board) {
         return 0;
     }
 
+
     double materialDiff = whiteMaterial - blackMaterial;
 
     // Endgame factor is between 0 and 1, where 1 is full-on endgame and 0 is opening
@@ -263,12 +264,62 @@ double EvaluateBoardState(Board board) {
     return materialDiff + locationEval + (endGameEval * endGameFactor);
 }
 
+double GetPieceValue(char piece) {
+    switch ((char)tolower(piece)) {
+        case 'p': return pawnValue;
+        case 'n': return knightValue;
+        case 'b': return bishopValue;
+        case 'r': return rookValue;
+        case 'q': return queenValue;
+        default:  return 0.0;
+    }
+}
+
+vector<Move> OrderMoves(const Board& board, const vector<Move>& moves) {
+    vector<pair<int, Move>> scoredMoves;
+    scoredMoves.reserve(moves.size());
+
+    for (const Move& move : moves) {
+        int score = 0;
+
+        // Prioritize capturing an opponent's higher ranked piece
+        if (board.state[move.end.rank][move.end.file] != ' ') {
+            int movedPieceVal = GetPieceValue(board.state[move.start.rank][move.start.file]);
+            int capturedPieceVal = GetPieceValue(board.state[move.end.rank][move.end.file]);
+
+            score += 15 * capturedPieceVal - movedPieceVal;
+        }
+
+        // Promotion is likely a good move so let it be checked first
+        if (move.promotionPiece != ' ') {
+            score += 20 * GetPieceValue(move.promotionPiece);
+        }
+
+        scoredMoves.emplace_back(score, move);
+    }
+
+    sort(scoredMoves.begin(), scoredMoves.end(),
+        [](const pair<int, Move>& a, const pair<int, Move>& b) {
+            return a.first > b.first; // Sorts by score in descending order
+        });
+
+    vector<Move> orderedMoves;
+    orderedMoves.reserve(scoredMoves.size());
+    for (const auto& scored : scoredMoves) {
+        orderedMoves.push_back(scored.second);
+    }
+
+    return orderedMoves;
+}
+
 double Search(Board& board, int depth, double alpha, double beta, bool isMaximizing) {
     if (board.IsThreeFoldRep() || board.hasReachedPositionBefore()) {
         return 0; // Draw by repetition or repeated position history
     }
 
     vector<Move> legalMoves = board.GetLegalMoves();
+    legalMoves = OrderMoves(board, legalMoves); // Use OrderMoves here
+
     if (legalMoves.empty()) {
         if (board.IsInCheck(board.whiteToMove)) {
             double mateScore = 1e10 - (100.0 - depth);
@@ -317,15 +368,15 @@ Move FindBestMove(Board& board, int depth) {
     vector<Move> candidateMoves;
     for (const vector<Move>& opening : openings) {
         Board openingBoard;
-        
+
         for (size_t i = 0; i < opening.size(); ++i) {
             openingBoard.MakeMove(opening[i]);
-            
+
             if (openingBoard.concatBoard() == board.concatBoard()) {
                 if (i + 1 < opening.size()) {
                     candidateMoves.push_back(opening[i + 1]);
                 }
-                
+
                 break;
             }
         }
@@ -338,6 +389,8 @@ Move FindBestMove(Board& board, int depth) {
     }
 
     vector<Move> moves = board.GetLegalMoves();
+    moves = OrderMoves(board, moves); // Use OrderMoves here
+
     if (moves.empty()) {
         return Move();
     }

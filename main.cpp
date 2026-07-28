@@ -1,6 +1,8 @@
 #include <raylib.h>
 #include <iostream>
 #include <cctype>
+#include <cmath>
+#include <chrono>
 #include "board.h"
 #include "bot.h"
 using namespace std;
@@ -315,8 +317,17 @@ int main() {
 
             // If waiting for bot, and it's bot's turn, play bot move
             if (waitingForBot && !board.whiteToMove && !gameOver) {
+                auto start = chrono::steady_clock::now();
                 Move botMove = FindBestMove(board, 3);
+                auto end = chrono::steady_clock::now();
                 board.MakeMove(botMove);
+
+                double elapsed = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+                if (elapsed < 1000) {
+                    cout << "Time took for move: " << elapsed << "ms" << endl;
+                } else {
+                    cout << "Time took for move: " << elapsed / 1000 << "s" << endl;
+                }
 
                 legalMoves = board.GetLegalMoves();
                 CheckGameOver();
