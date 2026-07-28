@@ -92,6 +92,34 @@ double kingLocationEval_EndGame[8][8] = {
     {  0,   5,  10,  15,  15,  10,   5,  0 }
 };
 
+vector<vector<Move>> openings = {
+    // Italian Game
+    {
+        { {6, 4}, {4, 4} }, // e4
+        { {1, 4}, {3, 4} }, // e5
+        { {7, 6}, {5, 5} }, // Nf3
+        { {0, 1}, {2, 2} }, // Nc6
+        { {7, 5}, {4, 2} }  // Bc4
+    },
+
+    // Ruy Lopez (Spanish Opening)
+    {
+        { {6, 4}, {4, 4} }, // e4
+        { {1, 4}, {3, 4} }, // e5
+        { {7, 6}, {5, 5} }, // Nf3
+        { {0, 1}, {2, 2} }, // Nc6
+        { {7, 5}, {3, 1} }  // Bc5
+    },
+
+    // Petrov's Defense
+    {
+        { {6, 4}, {4, 4} }, // e4
+        { {1, 4}, {3, 4} }, // e5
+        { {7, 6}, {5, 5} }, // Nf3
+        { {0, 6}, {2, 5} }  // Nf6
+    },
+};
+
 double EvalKingNearEdge(char state[8][8], int friendlyKing[2], int enemyKing[2], int endgameWeight) {
     int evaluation = 0;
 
@@ -285,6 +313,30 @@ double Search(Board& board, int depth, double alpha, double beta, bool isMaximiz
 }
 
 Move FindBestMove(Board& board, int depth) {
+    // Collect all possible next moves from openings that contain the current board state
+    vector<Move> candidateMoves;
+    for (const vector<Move>& opening : openings) {
+        Board openingBoard;
+        
+        for (size_t i = 0; i < opening.size(); ++i) {
+            openingBoard.MakeMove(opening[i]);
+            
+            if (openingBoard.concatBoard() == board.concatBoard()) {
+                if (i + 1 < opening.size()) {
+                    candidateMoves.push_back(opening[i + 1]);
+                }
+                
+                break;
+            }
+        }
+    }
+
+    // If multiple candidate opening moves exist, pick one at random
+    if (!candidateMoves.empty()) {
+        size_t idx = static_cast<size_t>(rand()) % candidateMoves.size();
+        return candidateMoves[idx];
+    }
+
     vector<Move> moves = board.GetLegalMoves();
     if (moves.empty()) {
         return Move();

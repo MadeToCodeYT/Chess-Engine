@@ -28,14 +28,14 @@ struct Move {
 class Board {
     public:
         char state[8][8] = { // state [ rank ] [ file ]
-            {'k', 'q', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 8 (Black)
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 7
+            {'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}, // Row 8 (Black)
+            {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'}, // Row 7
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 6
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 5
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 4
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 3
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 2
-            {'K', ' ', ' ', ' ', ' ', ' ', ' ', ' '}  // Row 1 (White)
+            {'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'}, // Row 2
+            {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}  // Row 1 (White)
         };
 
         vector<string> boardPositions;
@@ -213,12 +213,7 @@ class Board {
             }
 
             // Add the combined string of the board into boardPositions
-            string boardString;
-            for (int rank = 0; rank < 8; rank++) {
-                for (int file = 0; file < 8; file++) {
-                    boardString += state[rank][file];
-                }
-            }
+            string boardString = concatBoard();
             boardPositions.push_back(boardString);
     
             // Switch board turn
@@ -255,6 +250,16 @@ class Board {
                 }
             }
             return false;
+        }
+
+        string concatBoard() {
+            string boardString;
+            for (int rank = 0; rank < 8; rank++) {
+                for (int file = 0; file < 8; file++) {
+                    boardString += state[rank][file];
+                }
+            }
+            return boardString;
         }
 
         bool IsInCheck(bool whiteSide) {
