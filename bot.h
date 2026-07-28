@@ -5,6 +5,7 @@ Some parts of the engine will be near identical to his version but I have added 
 
 #include "board.h"
 #include <vector>
+#include <unordered_map>
 #include <algorithm>
 
 using namespace std;
@@ -120,6 +121,9 @@ vector<vector<Move>> openings = {
     },
 };
 
+// Store already evaluated positions for faster search
+unordered_map<string, double> transpositionTable;
+
 double EvalKingNearEdge(char state[8][8], int friendlyKing[2], int enemyKing[2], int endgameWeight) {
     int evaluation = 0;
 
@@ -132,6 +136,20 @@ double EvalKingNearEdge(char state[8][8], int friendlyKing[2], int enemyKing[2],
     int distanceBetweenKingsFile = abs(friendlyKing[1] - enemyKing[1]);
     int distanceBetweenKingsRank = abs(friendlyKing[0] - enemyKing[0]);
     evaluation += 14 - (distanceBetweenKingsFile + distanceBetweenKingsRank);
+
+    // Remove squares around the enemy king to make checkmating easier (subtract 8 if surrounded on all sides)
+    int avaliableSquares = 0;
+    for (int dr = -1; dr <= 1; dr++) {
+        for (int df = -1; df <= 1; df++) {
+            if (dr == 0 && df == 0) continue;
+            int r = enemyKing[0] + dr;
+            int f = enemyKing[1] + df;
+            if (r >= 0 && r < 8 && f >= 0 && f < 8) {
+                avaliableSquares++;
+            }
+        }
+    }
+    evaluation += (8 - avaliableSquares);
 
     return evaluation * 10 * endgameWeight;
 }
@@ -245,7 +263,6 @@ double EvaluateBoardState(Board board) {
         return 0;
     }
 
-
     double materialDiff = whiteMaterial - blackMaterial;
 
     // Endgame factor is between 0 and 1, where 1 is full-on endgame and 0 is opening
@@ -274,7 +291,6 @@ double GetPieceValue(char piece) {
         default:  return 0.0;
     }
 }
-
 vector<Move> OrderMoves(const Board& board, const vector<Move>& moves) {
     vector<pair<int, Move>> scoredMoves;
     scoredMoves.reserve(moves.size());
@@ -337,7 +353,16 @@ double Search(Board& board, int depth, double alpha, double beta, bool isMaximiz
         for (const Move& move : legalMoves) {
             Board tempBoard = board;
             tempBoard.MakeMove(move);
-            double evaluation = Search(tempBoard, depth - 1, alpha, beta, false);
+            double evaluation = 0;
+            
+            string boardString = tempBoard.concatBoard();
+            auto it = transpositionTable.find(boardString);
+            if (it != transpositionTable.end()) {
+                evaluation = it->second;
+            } else {
+                evaluation = Search(tempBoard, depth - 1, alpha, beta, false);
+                transpositionTable[boardString] = evaluation;
+            }
 
             maxEval = max(maxEval, evaluation);
             alpha = max(alpha, evaluation);
@@ -351,7 +376,16 @@ double Search(Board& board, int depth, double alpha, double beta, bool isMaximiz
         for (const Move& move : legalMoves) {
             Board tempBoard = board;
             tempBoard.MakeMove(move);
-            double evaluation = Search(tempBoard, depth - 1, alpha, beta, true);
+            double evaluation = 0;
+
+            string boardString = tempBoard.concatBoard();
+            auto it = transpositionTable.find(boardString);
+            if (it != transpositionTable.end()) {
+                evaluation = it->second;
+            } else {
+                evaluation = Search(tempBoard, depth - 1, alpha, beta, true);
+                transpositionTable[boardString] = evaluation;
+            }
 
             minEval = min(minEval, evaluation);
             beta = min(beta, evaluation);
@@ -411,12 +445,18 @@ Move FindBestMove(Board& board, int depth) {
                 bestMove = move;
             }
             alpha = max(alpha, evaluation);
+            if (evaluation >= 1e10) { // Early exit on checkmate for white
+                break;
+            }
         } else {
             if (evaluation < bestValue) {
                 bestValue = evaluation;
                 bestMove = move;
             }
             beta = min(beta, evaluation);
+            if (evaluation <= -1e10) { // Early exit on checkmate for black
+                break;
+            }
         }
     }
 
