@@ -24,6 +24,11 @@ bool waitingForBot = false;
 
 void CheckGameOver() {
     if (gameOver) return;
+    if (board.IsThreeFoldRep()) {
+        gameOverText = "Draw by repetition.";
+        gameOver = true;
+        return;
+    }
     if (!legalMoves.empty()) return;
 
     bool inCheck = board.IsInCheck(board.whiteToMove);
@@ -56,8 +61,8 @@ void DrawBoard() {
             float yPos = rank * 100;
 
             // Alternate colors based on square position
-            Color squareColor = ((file + rank) % 2 == 0) ? Color{118, 153, 174, 255} : Color{212, 223, 229, 255};
-            Color oppositeColor = ((file + rank) % 2 == 1) ? Color{118, 153, 174, 255} : Color{212, 223, 229, 255};
+            Color squareColor = ((file + rank) % 2 == 1) ? Color{118, 153, 174, 255} : Color{212, 223, 229, 255};
+            Color oppositeColor = ((file + rank) % 2 == 0) ? Color{118, 153, 174, 255} : Color{212, 223, 229, 255};
 
             // Check if square is inside currently selected piece's legal moves
             bool isLegalSquare = false;
@@ -311,7 +316,6 @@ int main() {
             // If waiting for bot, and it's bot's turn, play bot move
             if (waitingForBot && !board.whiteToMove && !gameOver) {
                 Move botMove = FindBestMove(board, 3);
-                cout << botMove.promotionPiece << endl;
                 board.MakeMove(botMove);
 
                 legalMoves = board.GetLegalMoves();

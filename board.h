@@ -28,15 +28,17 @@ struct Move {
 class Board {
     public:
         char state[8][8] = { // state [ rank ] [ file ]
-            {'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}, // Row 8 (Black)
-            {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'}, // Row 7
+            {'k', 'q', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 8 (Black)
+            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 7
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 6
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 5
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 4
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 3
-            {'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'}, // Row 2
-            {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}  // Row 1 (White)
+            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 2
+            {'K', ' ', ' ', ' ', ' ', ' ', ' ', ' '}  // Row 1 (White)
         };
+
+        vector<string> boardPositions;
         
         int enPassantSquares[2][2]; // Allows these two squares to En Passant
         bool w_hasLeftRookMoved = false;
@@ -47,7 +49,6 @@ class Board {
         bool b_hasKingMoved = false;
 
         bool whiteToMove = true;
-
 
         vector<Move> GetLegalMoves() {
             vector<Move> legalMoves;
@@ -211,10 +212,49 @@ class Board {
                 }
             }
 
+            // Add the combined string of the board into boardPositions
+            string boardString;
+            for (int rank = 0; rank < 8; rank++) {
+                for (int file = 0; file < 8; file++) {
+                    boardString += state[rank][file];
+                }
+            }
+            boardPositions.push_back(boardString);
+    
             // Switch board turn
             if (switchTurns) {
                 whiteToMove = !whiteToMove;
             }
+        }
+
+        bool IsThreeFoldRep() {
+            // Returns true if the current position occurred three times (threefold repetition)
+            int count = 0;
+            string currentBoardString;
+            if (!boardPositions.empty()) {
+                currentBoardString = boardPositions.back();
+            } else {
+                // No positions recorded, cannot be repetition
+                return false;
+            }
+            for (const string &pos : boardPositions) {
+                if (pos == currentBoardString) {
+                    count++;
+                }
+            }
+            return count >= 3;
+        }
+
+        bool hasReachedPositionBefore() {
+            if (boardPositions.size() < 2) return false;
+            const string &currentBoardString = boardPositions.back();
+
+            for (size_t i = 0; i + 1 < boardPositions.size(); ++i) {
+                if (boardPositions[i] == currentBoardString) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         bool IsInCheck(bool whiteSide) {

@@ -1,23 +1,29 @@
+/*
+This was inspired by Sebastian Lague's video on chess bots (https://www.youtube.com/watch?v=U4ogK0MIzqk).
+Some parts of the engine will be near identical to his version but I have added some of my own changes.
+*/
+
 #include "board.h"
 #include <vector>
 #include <algorithm>
+
 using namespace std;
 
 const int pawnValue = 100;
 const int knightValue = 300;
 const int bishopValue = 320;
 const int rookValue = 500;
-const int queenValue = 900;                                    
+const int queenValue = 900;
 
 double pawnLocationEval[8][8] = {
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {50, 50, 50, 50, 50, 50, 50, 50},
-    {10, 15, 20, 30, 30, 20, 15, 10},
-    {5, 5, 10, 25, 25, 10, 5, 5},
-    {0, 0, 0, 20, 20, 0, 0, 0},
-    {5, -5, -10, 0, 0, -10, -5, 5},
-    {5, 10, 10, -20, -20, 10, 10, 5},
-    {0, 0, 0, 0, 0, 0, 0, 0},
+    {  0,   0,   0,   0,   0,   0,   0,   0 },
+    { 50,  50,  50,  50,  50,  50,  50,  50 },
+    { 10,  15,  20,  30,  30,  20,  15,  10 },
+    {  5,   5,  10,  25,  25,  10,   5,   5 },
+    {  0,   0,   0,  20,  20,   0,   0,   0 },
+    {  5,  -5, -10,   0,   0, -10,  -5,   5 },
+    {  5,  10,  10, -20, -20,  10,  10,   5 },
+    {  0,   0,   0,   0,   0,   0,   0,   0 }
 };
 
 double knightLocationEval[8][8] = {
@@ -72,13 +78,59 @@ double kingLocationEval[8][8] = {
     {  7,  15,  15,  20,  20,  15,  15,   7},
     { 15,  25,  30,  30,  30,  30,  25,  15},
     { 25,  30,  35,  35,  35,  35,  30,  25},
-    { 30,  40,  60,  80,  80,  60,  40,  30}
+    { 30,  60,  40,  80,  80,  60,  40,  30}
 };
+
+double kingLocationEval_EndGame[8][8] = {
+    {  0,   5,  10,  15,  15,  10,   5,  0 },
+    {  5,  10,  20,  25,  25,  20,  10,  5 },
+    { 10,  20,  30,  35,  35,  30,  20, 10 },
+    { 15,  25,  35,  40,  40,  35,  25, 15 },
+    { 15,  25,  35,  40,  40,  35,  25, 15 },
+    { 10,  20,  30,  35,  35,  30,  20, 10 },
+    {  5,  10,  20,  25,  25,  20,  10,  5 },
+    {  0,   5,  10,  15,  15,  10,   5,  0 }
+};
+
+double EvalKingNearEdge(char state[8][8], int friendlyKing[2], int enemyKing[2], int endgameWeight) {
+    int evaluation = 0;
+
+    // Favour positions where the enemy king is farther away from the center
+    int enemyDistanceToCenterFile = max(3 - enemyKing[1], enemyKing[1] - 4);
+    int enemyDistanceToCenterRank = max(3 - enemyKing[0], enemyKing[0] - 4);
+    evaluation += enemyDistanceToCenterFile + enemyDistanceToCenterRank;
+
+    // Favour moving the king closer to the opponent king to cutoff their squares
+    int distanceBetweenKingsFile = abs(friendlyKing[1] - enemyKing[1]);
+    int distanceBetweenKingsRank = abs(friendlyKing[0] - enemyKing[0]);
+    evaluation += 14 - (distanceBetweenKingsFile + distanceBetweenKingsRank);
+
+    return evaluation * 10 * endgameWeight;
+}
 
 double EvaluateBoardState(Board board) {
     double whiteMaterial = 0;
     double blackMaterial = 0;
     double locationEval = 0;
+    double endGameEval = 0;
+
+    int b_pawns = 0;
+    int b_knights = 0;
+    int b_bishops = 0;
+    int b_rooks = 0;
+    int b_queens = 0;
+    int b_kingPos[2];
+    
+    int w_pawns = 0;
+    int w_knights = 0;
+    int w_bishops = 0;
+    int w_rooks = 0;
+    int w_queens = 0;
+    int w_kingPos[2];
+
+    if (board.IsThreeFoldRep() || board.hasReachedPositionBefore()) {
+        return 0;
+    }
 
     for (int file = 0; file < 8; file++) {
         for (int rank = 0; rank < 8; rank++) {
@@ -86,64 +138,119 @@ double EvaluateBoardState(Board board) {
                 case 'P':
                     whiteMaterial += pawnValue;
                     locationEval += pawnLocationEval[rank][file];
+                    w_pawns++;
                     break;
                 case 'N':
                     whiteMaterial += knightValue;
                     locationEval += knightLocationEval[rank][file];
+                    w_knights++;
                     break;
                 case 'B':
                     whiteMaterial += bishopValue;
                     locationEval += bishopLocationEval[rank][file];
+                    w_bishops++;
                     break;
                 case 'R':
                     whiteMaterial += rookValue;
                     locationEval += rookLocationEval[rank][file];
+                    w_rooks++;
                     break;
                 case 'Q':
                     whiteMaterial += queenValue;
                     locationEval += queenLocationEval[rank][file];
+                    w_queens++;
+                    break;
+                case 'K':
+                    w_kingPos[0] = rank;
+                    w_kingPos[1] = file;
                     break;
 
                 case 'p':
                     blackMaterial += pawnValue;
                     locationEval += pawnLocationEval[7 - rank][file];
+                    b_pawns++;
                     break;
                 case 'n':
                     blackMaterial += knightValue;
                     locationEval += knightLocationEval[7 - rank][file];
+                    b_knights++;
                     break;
                 case 'b':
                     blackMaterial += bishopValue;
                     locationEval += bishopLocationEval[7 - rank][file];
+                    b_bishops++;
                     break;
                 case 'r':
                     blackMaterial += rookValue;
                     locationEval += rookLocationEval[7 - rank][file];
+                    b_rooks++;
                     break;
                 case 'q':
                     blackMaterial += queenValue;
                     locationEval += queenLocationEval[7 - rank][file];
+                    b_queens++;
                     break;
-               
+                case 'k':
+                    b_kingPos[0] = rank;
+                    b_kingPos[1] = file;
+                    break;
             }
         }
     }
 
-    double materialTotal = whiteMaterial - blackMaterial;
+    // Check for insufficient material
+    bool whiteMinorOnly = (w_pawns == 0 && w_rooks == 0 && w_queens == 0 && (w_bishops + w_knights) <= 1);
+    bool blackMinorOnly = (b_pawns == 0 && b_rooks == 0 && b_queens == 0 && (b_bishops + b_knights) <= 1);
+    int piecesCount = b_pawns+b_knights+b_bishops+b_rooks+b_queens + w_pawns+w_knights+w_bishops+w_rooks+w_queens + 2; // +2 for black and white kings
+    if (
+        // King vs king
+        (piecesCount == 2)
 
-    return materialTotal + locationEval;
+        // King and bishop vs king or king and knight vs king
+        || (piecesCount == 3 && (
+            (w_bishops == 1 && w_knights == 0 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
+            (w_bishops == 0 && w_knights == 1 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
+            (b_bishops == 1 && b_knights == 0 && b_pawns == 0 && b_rooks == 0 && b_queens == 0) ||
+            (b_bishops == 0 && b_knights == 1 && b_pawns == 0 && b_rooks == 0 && b_queens == 0)
+        ))
+    ) {
+        return 0;
+    }
+
+    double materialDiff = whiteMaterial - blackMaterial;
+
+    // Endgame factor is between 0 and 1, where 1 is full-on endgame and 0 is opening
+    double endGameFactor = min(1.0, max(0.0, (16.0 - piecesCount) / 12.0));
+
+    // Add king location eval (murges opening/middle game with endgame eval)
+    // Blend king square tables between opening and endgame
+    locationEval += (1 - endGameFactor) * kingLocationEval[w_kingPos[0]][w_kingPos[1]]
+                    + endGameFactor * kingLocationEval_EndGame[w_kingPos[0]][w_kingPos[1]];
+    locationEval += (1 - endGameFactor) * kingLocationEval[7 - b_kingPos[0]][b_kingPos[1]]
+                    + endGameFactor * kingLocationEval_EndGame[7 - b_kingPos[0]][b_kingPos[1]];
+
+    endGameEval = EvalKingNearEdge(board.state, w_kingPos, b_kingPos, endGameFactor)
+                - EvalKingNearEdge(board.state, b_kingPos, w_kingPos, endGameFactor);
+
+    return materialDiff + locationEval + (endGameEval * endGameFactor);
 }
 
 double Search(Board& board, int depth, double alpha, double beta, bool isMaximizing) {
-    if (depth == 0) {
-        return EvaluateBoardState(board);
+    if (board.IsThreeFoldRep() || board.hasReachedPositionBefore()) {
+        return 0; // Draw by repetition or repeated position history
     }
+
     vector<Move> legalMoves = board.GetLegalMoves();
-    if (legalMoves.size() == 0) {
+    if (legalMoves.empty()) {
         if (board.IsInCheck(board.whiteToMove)) {
-            return board.whiteToMove ? -1e10 : 1e10; // Checkmate
+            double mateScore = 1e10 - (100.0 - depth);
+            return board.whiteToMove ? -mateScore : mateScore; // Checkmate with depth preference
         }
         return 0; // Stalemate
+    }
+
+    if (depth == 0) {
+        return EvaluateBoardState(board);
     }
 
     if (isMaximizing) {
@@ -180,7 +287,7 @@ double Search(Board& board, int depth, double alpha, double beta, bool isMaximiz
 Move FindBestMove(Board& board, int depth) {
     vector<Move> moves = board.GetLegalMoves();
     if (moves.empty()) {
-        // Can't return an empty move since it'll be invalid
+        return Move();
     }
     Move bestMove = moves[0]; // Fallback initialization
 
@@ -188,7 +295,7 @@ Move FindBestMove(Board& board, int depth) {
     double alpha = -1e10;
     double beta = 1e10;
 
-    for (const auto& move : moves) {
+    for (const Move move : moves) {
         Board tempBoard = board;
         tempBoard.MakeMove(move);
         double evaluation = Search(tempBoard, depth - 1, alpha, beta, !board.whiteToMove);
@@ -207,5 +314,6 @@ Move FindBestMove(Board& board, int depth) {
             beta = min(beta, evaluation);
         }
     }
+
     return bestMove;
 }
