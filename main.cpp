@@ -31,6 +31,47 @@ void CheckGameOver() {
         gameOver = true;
         return;
     }
+
+    // Check for insufficient material by counting pieces on the board
+    int w_pawns=0, w_knights=0, w_bishops=0, w_rooks=0, w_queens=0;
+    int b_pawns=0, b_knights=0, b_bishops=0, b_rooks=0, b_queens=0;
+    for (int r = 0; r < 8; r++) {
+        for (int f = 0; f < 8; f++) {
+            char c = board.state[r][f];
+            switch (c) {
+                case 'P': w_pawns++; break;
+                case 'N': w_knights++; break;
+                case 'B': w_bishops++; break;
+                case 'R': w_rooks++; break;
+                case 'Q': w_queens++; break;
+                case 'p': b_pawns++; break;
+                case 'n': b_knights++; break;
+                case 'b': b_bishops++; break;
+                case 'r': b_rooks++; break;
+                case 'q': b_queens++; break;
+                default: break;
+            }
+        }
+    }
+
+    int piecesCount = b_pawns+b_knights+b_bishops+b_rooks+b_queens + w_pawns+w_knights+w_bishops+w_rooks+w_queens + 2; // +2 for kings
+    if (
+        // King vs king
+        (piecesCount == 2)
+
+        // King and bishop vs king or king and knight vs king
+        || (piecesCount == 3 && (
+            (w_bishops == 1 && w_knights == 0 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
+            (w_bishops == 0 && w_knights == 1 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
+            (b_bishops == 1 && b_knights == 0 && b_pawns == 0 && b_rooks == 0 && b_queens == 0) ||
+            (b_bishops == 0 && b_knights == 1 && b_pawns == 0 && b_rooks == 0 && b_queens == 0)
+        ) && b_pawns == 0 && w_pawns == 0)
+    ) {
+        gameOverText = "Draw by insufficient material.";
+        gameOver = true;
+        return;
+    }
+
     if (!legalMoves.empty()) return;
 
     bool inCheck = board.IsInCheck(board.whiteToMove);

@@ -5,7 +5,6 @@ Some parts of the engine will be near identical to his version but I have added 
 
 #include "board.h"
 #include <vector>
-#include <unordered_map>
 #include <algorithm>
 
 using namespace std;
@@ -20,8 +19,8 @@ double pawnLocationEval[8][8] = {
     {  0,   0,   0,   0,   0,   0,   0,   0 },
     { 50,  50,  50,  50,  50,  50,  50,  50 },
     { 10,  15,  20,  30,  30,  20,  15,  10 },
-    {  5,   5,  10,  25,  25,  10,   5,   5 },
-    {  0,   0,   0,  20,  20,   0,   0,   0 },
+    {  5,   5,  10,  27,  27,  10,   5,   5 },
+    {  0,   0,   0,  40,  40,   0,   0,   0 },
     {  5,  -5, -10,   0,   0, -10,  -5,   5 },
     {  5,  10,  10, -20, -20,  10,  10,   5 },
     {  0,   0,   0,   0,   0,   0,   0,   0 }
@@ -57,7 +56,7 @@ double rookLocationEval[8][8] = {
 	{-5,  0,  0,  0,  0,  0,  0, -5},
 	{-5,  0,  0,  0,  0,  0,  0, -5},
 	{-5,  0,  0,  0,  0,  0,  0, -5},
-	{0,  0,  0,  5,  5,  0,  0,  0}
+	{0,  0,  0,  7,  7,  0,  0,  0}
 };
 
 double queenLocationEval[8][8] = {
@@ -121,8 +120,6 @@ vector<vector<Move>> openings = {
     },
 };
 
-// Store already evaluated positions for faster search
-unordered_map<string, double> transpositionTable;
 
 double EvalKingNearEdge(char state[8][8], int friendlyKing[2], int enemyKing[2], int endgameWeight) {
     int evaluation = 0;
@@ -149,7 +146,7 @@ double EvalKingNearEdge(char state[8][8], int friendlyKing[2], int enemyKing[2],
             }
         }
     }
-    evaluation += (8 - avaliableSquares);
+    evaluation += 10 * (8 - avaliableSquares);
 
     return evaluation * 10 * endgameWeight;
 }
@@ -258,7 +255,7 @@ double EvaluateBoardState(Board board) {
             (w_bishops == 0 && w_knights == 1 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
             (b_bishops == 1 && b_knights == 0 && b_pawns == 0 && b_rooks == 0 && b_queens == 0) ||
             (b_bishops == 0 && b_knights == 1 && b_pawns == 0 && b_rooks == 0 && b_queens == 0)
-        ))
+        ) && b_pawns == 0 && w_pawns == 0)
     ) {
         return 0;
     }
@@ -353,16 +350,7 @@ double Search(Board& board, int depth, double alpha, double beta, bool isMaximiz
         for (const Move& move : legalMoves) {
             Board tempBoard = board;
             tempBoard.MakeMove(move);
-            double evaluation = 0;
-            
-            string boardString = tempBoard.concatBoard();
-            auto it = transpositionTable.find(boardString);
-            if (it != transpositionTable.end()) {
-                evaluation = it->second;
-            } else {
-                evaluation = Search(tempBoard, depth - 1, alpha, beta, false);
-                transpositionTable[boardString] = evaluation;
-            }
+            double evaluation = Search(tempBoard, depth - 1, alpha, beta, false);
 
             maxEval = max(maxEval, evaluation);
             alpha = max(alpha, evaluation);
@@ -376,16 +364,7 @@ double Search(Board& board, int depth, double alpha, double beta, bool isMaximiz
         for (const Move& move : legalMoves) {
             Board tempBoard = board;
             tempBoard.MakeMove(move);
-            double evaluation = 0;
-
-            string boardString = tempBoard.concatBoard();
-            auto it = transpositionTable.find(boardString);
-            if (it != transpositionTable.end()) {
-                evaluation = it->second;
-            } else {
-                evaluation = Search(tempBoard, depth - 1, alpha, beta, true);
-                transpositionTable[boardString] = evaluation;
-            }
+            double evaluation = Search(tempBoard, depth - 1, alpha, beta, true);
 
             minEval = min(minEval, evaluation);
             beta = min(beta, evaluation);

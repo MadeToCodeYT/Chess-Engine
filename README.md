@@ -1,5 +1,3 @@
-
-
 # C++ Chess Engine
 
 A minimal, interactive chess game and engine written in C++ using [raylib](https://www.raylib.com/) for graphics.
