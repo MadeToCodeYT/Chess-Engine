@@ -157,19 +157,9 @@ double EvaluateBoardState(Board board) {
     double locationEval = 0;
     double endGameEval = 0;
 
-    int b_pawns = 0;
-    int b_knights = 0;
-    int b_bishops = 0;
-    int b_rooks = 0;
-    int b_queens = 0;
     int b_kingPos[2];
-    
-    int w_pawns = 0;
-    int w_knights = 0;
-    int w_bishops = 0;
-    int w_rooks = 0;
-    int w_queens = 0;
     int w_kingPos[2];
+    int piecesCount = 2;
 
     if (board.IsThreeFoldRep() || board.hasReachedPositionBefore()) {
         return 0;
@@ -181,27 +171,27 @@ double EvaluateBoardState(Board board) {
                 case 'P':
                     whiteMaterial += pawnValue;
                     locationEval += pawnLocationEval[rank][file];
-                    w_pawns++;
+                    piecesCount++;
                     break;
                 case 'N':
                     whiteMaterial += knightValue;
                     locationEval += knightLocationEval[rank][file];
-                    w_knights++;
+                    piecesCount++;
                     break;
                 case 'B':
                     whiteMaterial += bishopValue;
                     locationEval += bishopLocationEval[rank][file];
-                    w_bishops++;
+                    piecesCount++;
                     break;
                 case 'R':
                     whiteMaterial += rookValue;
                     locationEval += rookLocationEval[rank][file];
-                    w_rooks++;
+                    piecesCount++;
                     break;
                 case 'Q':
                     whiteMaterial += queenValue;
                     locationEval += queenLocationEval[rank][file];
-                    w_queens++;
+                    piecesCount++;
                     break;
                 case 'K':
                     w_kingPos[0] = rank;
@@ -211,27 +201,27 @@ double EvaluateBoardState(Board board) {
                 case 'p':
                     blackMaterial += pawnValue;
                     locationEval += pawnLocationEval[7 - rank][file];
-                    b_pawns++;
+                    piecesCount++;
                     break;
                 case 'n':
                     blackMaterial += knightValue;
                     locationEval += knightLocationEval[7 - rank][file];
-                    b_knights++;
+                    piecesCount++;
                     break;
                 case 'b':
                     blackMaterial += bishopValue;
                     locationEval += bishopLocationEval[7 - rank][file];
-                    b_bishops++;
+                    piecesCount++;
                     break;
                 case 'r':
                     blackMaterial += rookValue;
                     locationEval += rookLocationEval[7 - rank][file];
-                    b_rooks++;
+                    piecesCount++;
                     break;
                 case 'q':
                     blackMaterial += queenValue;
                     locationEval += queenLocationEval[7 - rank][file];
-                    b_queens++;
+                    piecesCount++;
                     break;
                 case 'k':
                     b_kingPos[0] = rank;
@@ -241,22 +231,7 @@ double EvaluateBoardState(Board board) {
         }
     }
 
-    // Check for insufficient material
-    bool whiteMinorOnly = (w_pawns == 0 && w_rooks == 0 && w_queens == 0 && (w_bishops + w_knights) <= 1);
-    bool blackMinorOnly = (b_pawns == 0 && b_rooks == 0 && b_queens == 0 && (b_bishops + b_knights) <= 1);
-    int piecesCount = b_pawns+b_knights+b_bishops+b_rooks+b_queens + w_pawns+w_knights+w_bishops+w_rooks+w_queens + 2; // +2 for black and white kings
-    if (
-        // King vs king
-        (piecesCount == 2)
-
-        // King and bishop vs king or king and knight vs king
-        || (piecesCount == 3 && (
-            (w_bishops == 1 && w_knights == 0 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
-            (w_bishops == 0 && w_knights == 1 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
-            (b_bishops == 1 && b_knights == 0 && b_pawns == 0 && b_rooks == 0 && b_queens == 0) ||
-            (b_bishops == 0 && b_knights == 1 && b_pawns == 0 && b_rooks == 0 && b_queens == 0)
-        ) && b_pawns == 0 && w_pawns == 0)
-    ) {
+    if (board.isDraw() != "") {
         return 0;
     }
 

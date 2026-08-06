@@ -28,16 +28,16 @@ struct Move {
 class Board {
     public:
         char state[8][8] = { // state [ rank ] [ file ]
-            {' ', ' ', ' ', 'r', ' ', ' ', ' ', ' '}, // Row 8 (Black)
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 7
-            {' ', ' ', ' ', 'k', ' ', ' ', ' ', ' '}, // Row 6
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 5
-            {' ', ' ', ' ', 'K', ' ', ' ', ' ', ' '}, // Row 4
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 3
-            {' ', ' ', ' ', 'R', ' ', ' ', ' ', ' '}, // Row 2
+            {' ', ' ', ' ', 'R', ' ', ' ', ' ', ' '}, // Row 8 (Black)
+            {' ', ' ', ' ', 'K', ' ', ' ', ' ', ' '}, // Row 7
+            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 6
+            {' ', ' ', ' ', 'k', ' ', ' ', ' ', ' '}, // Row 5
+            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 4
+            {' ', ' ', ' ', 'r', ' ', ' ', ' ', ' '}, // Row 3
+            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, // Row 2
             {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}  // Row 1 (White)
         };
-        
+
         // char state[8][8] = { // state [ rank ] [ file ]
         //     {'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}, // Row 8 (Black)
         //     {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'}, // Row 7
@@ -296,6 +296,55 @@ class Board {
                 }
             }
             return false;
+        }
+
+        string isDraw() {
+            // Check for insufficient material
+            int w_pawns=0, w_knights=0, w_bishops=0, w_rooks=0, w_queens=0;
+            int b_pawns=0, b_knights=0, b_bishops=0, b_rooks=0, b_queens=0;
+            for (int r = 0; r < 8; r++) {
+                for (int f = 0; f < 8; f++) {
+                    char c = state[r][f];
+                    switch (c) {
+                        case 'P': w_pawns++; break;
+                        case 'N': w_knights++; break;
+                        case 'B': w_bishops++; break;
+                        case 'R': w_rooks++; break;
+                        case 'Q': w_queens++; break;
+                        case 'p': b_pawns++; break;
+                        case 'n': b_knights++; break;
+                        case 'b': b_bishops++; break;
+                        case 'r': b_rooks++; break;
+                        case 'q': b_queens++; break;
+                        default: break;
+                    }
+                }
+            }
+
+            int piecesCount = b_pawns+b_knights+b_bishops+b_rooks+b_queens + w_pawns+w_knights+w_bishops+w_rooks+w_queens + 2; // +2 for kings
+            if (
+                // King vs king
+                (piecesCount == 2)
+
+                // King and bishop vs king or king and knight vs king
+                || (piecesCount == 3 && (
+                    (w_bishops == 1 && w_knights == 0 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
+                    (w_bishops == 0 && w_knights == 1 && w_pawns == 0 && w_rooks == 0 && w_queens == 0) ||
+                    (b_bishops == 1 && b_knights == 0 && b_pawns == 0 && b_rooks == 0 && b_queens == 0) ||
+                    (b_bishops == 0 && b_knights == 1 && b_pawns == 0 && b_rooks == 0 && b_queens == 0)
+                ) && b_pawns == 0 && w_pawns == 0)
+            ) {
+                return "Draw by insufficient material.";
+            }
+
+            if (IsThreeFoldRep()) {
+                return "Draw by repetition.";
+            }
+
+            // Ignore stalemate and 50-move-rule (for now)
+
+            // Return nothing
+            return "";
         }
 
     private:
